@@ -64,8 +64,8 @@ impl Sysmon {
         }
     }
 
-    fn kb_to_gb(kb: u64) -> f64 {
-        kb as f64 / 1024.0 / 1024.0
+    fn bytes_to_gb(bytes: u64) -> f64 {
+        bytes as f64 / 1024.0 / 1024.0 / 1024.0
     }
 
     fn system_info(&self, info: SystemInfo) -> Option<String> {
@@ -113,11 +113,12 @@ fn display_data() {
 
     sysmon.system.refresh_memory();
 
-    let raw_total = sysmon.ram(RamInfo::TotalMemory);
-    let raw_used = sysmon.ram(RamInfo::UsedMemory);
+    let raw_total: u64 = sysmon.ram(RamInfo::TotalMemory);
+    let raw_used: u64  = sysmon.ram(RamInfo::UsedMemory);
 
-    let gb_total = format!("{:.2} GB", Sysmon::kb_to_gb(raw_total));
-    let gb_used  = format!("{:.2} GB", Sysmon::kb_to_gb(raw_used));
+    let gb_total = format!("{:.2} GB", Sysmon::bytes_to_gb(raw_total));
+    let gb_used  = format!("{:.2} GB", Sysmon::bytes_to_gb(raw_used));
+
 
     let nb_cpus = sysmon.cpu_info(CpuInfo::NBCpus).unwrap_or(0);
 
