@@ -8,8 +8,6 @@ use crossterm::{
 };
 use std::io::{stdout, Write};
 
-static mut TABLE_HEIGHT: usize = 0;
-
 struct TableStruct {
     sysmon: Sysmon,
     disks: Disks,
@@ -106,6 +104,8 @@ fn main() {
 fn display_data() {
     let mut stdout = stdout();
 
+    let mut table_height: usize = 0;
+
     let mut sysmon = Sysmon {
         system: System::new_all(),
         disks: Disks::new(),
@@ -159,7 +159,7 @@ fn display_data() {
         print!("{}", table_string);
         stdout.flush().unwrap();
 
-        TABLE_HEIGHT = height;
+        table_height = height;
     }
 
     // ===========================================
