@@ -1,4 +1,27 @@
+#![allow(warnings)]
 use sysinfo::{System,Disks};
+use tabled::{builder::Builder, settings::Style};
+use crossterm::{
+    execute,
+    cursor::MoveTo,
+    terminal::{Clear, ClearType},
+};
+use std::io::{stdout, Write};
+
+static mut TABLE_HEIGHT: usize = 0;
+
+struct TableStruct {
+    sysmon: Sysmon,
+    disks: Disks,
+}
+
+enum TableData {
+    RamInfo,
+    SystemInfo,
+    CpuInfo,
+    NetworkInfo,
+    DiskInfo,
+}
 
 struct Sysmon {
     system: System,
@@ -34,7 +57,6 @@ enum DiskInfo {
 }
 
 impl Sysmon {
-    /// Get RAM information in KB
     fn ram(&self, info: RamInfo) -> u64 {
         match info {
             RamInfo::TotalMemory => self.system.total_memory(),
@@ -42,12 +64,10 @@ impl Sysmon {
         }
     }
 
-    /// Convert KB to GB
     fn kb_to_gb(kb: u64) -> f64 {
         kb as f64 / 1024.0 / 1024.0
     }
 
-    /// Get system information (OS name, kernel, etc.)
     fn system_info(&self, info: SystemInfo) -> Option<String> {
         match info {
             SystemInfo::Name => System::name(),
@@ -60,27 +80,9 @@ impl Sysmon {
 
     fn cpu_info(&self, info: CpuInfo) -> Option<usize> {
         match info {
-            CpuInfo::NBCpus => 
-            Some(self.system.cpus().len()),
+            CpuInfo::NBCpus => Some(self.system.cpus().len()),
         }
     }
-
-    // fn network_info(&self, _info: NetworkInfo) -> Option<String> {
-    //     match info {
-    //         NetworkInfo::InterfaceName => {
-    //             // Placeholder for network interface name retrieval
-    //             NetworkInfo::InterfaceName => None,
-    //         }
-    //         NetworkInfo::TotalReceived => {
-    //             // Placeholder for total received bytes retrieval
-    //             NetworkInfo::TotalReceived => None,
-    //         }
-    //         NetworkInfo::TotalTransmitted => {
-    //             // Placeholder for total transmitted bytes retrieval
-    //             NetworkInfo::TotalTransmitted => None,
-    //         }
-    //     }
-    // }
 
     fn disk_info(&self, info: DiskInfo) -> Option<String> {
         match info {
@@ -102,79 +104,64 @@ fn main() {
 }
 
 fn display_data() {
-    
+    let mut stdout = stdout();
+
     let mut sysmon = Sysmon {
         system: System::new_all(),
         disks: Disks::new(),
     };
-    // Refresh only RAM information
+
     sysmon.system.refresh_memory();
 
-    // RAM info
-    let total = sysmon.ram(RamInfo::TotalMemory);
-    let used = sysmon.ram(RamInfo::UsedMemory);
+    let raw_total = sysmon.ram(RamInfo::TotalMemory);
+    let raw_used = sysmon.ram(RamInfo::UsedMemory);
 
-    println!(
-        "RAM: {:.2} / {:.2} GB used",
-        Sysmon::kb_to_gb(used),
-        Sysmon::kb_to_gb(total),
-    );
+    let gb_total = format!("{:.2} GB", Sysmon::kb_to_gb(raw_total));
+    let gb_used  = format!("{:.2} GB", Sysmon::kb_to_gb(raw_used));
 
-    // System info
-    let os_name = sysmon
-        .system_info(SystemInfo::Name)
-        .unwrap_or_else(|| "Unknown".to_string());
-    let kernel_version = sysmon
-        .system_info(SystemInfo::KernelVersion)
-        .unwrap_or_else(|| "Unknown".to_string());
-    let os_version = sysmon
-        .system_info(SystemInfo::OSVersion)
-        .unwrap_or_else(|| "Unknown".to_string());
-    let host_name = sysmon
-        .system_info(SystemInfo::HostName)
-        .unwrap_or_else(|| "Unknown".to_string());
-    let process_name = sysmon
-        .system_info(SystemInfo::Process)
-        .unwrap_or_else(|| "Unknown".to_string());
-    let components = sysmon
-        .system_info(SystemInfo::Components)
-        .unwrap_or_else(|| "Unknown".to_string());
-    
-    println!("Host Name: {}", host_name);
-    println!("OS: {}", os_name);
-    println!("OS Version: {}", os_version);
-    println!("Kernel Version: {}", kernel_version);
-    println!("Process ID: {}", process_name);
-    println!("Components: {}", components);
+    let nb_cpus = sysmon.cpu_info(CpuInfo::NBCpus).unwrap_or(0);
 
-    // CPU info
-    let nb_cpus = sysmon
-        .cpu_info(CpuInfo::NBCpus)
-        .unwrap_or(0);
+    let os_name = sysmon.system_info(SystemInfo::Name).unwrap_or("Unknown".into());
+    let os_version = sysmon.system_info(SystemInfo::OSVersion).unwrap_or("Unknown".into());
+    let kernel_version = sysmon.system_info(SystemInfo::KernelVersion).unwrap_or("Unknown".into());
+    let host_name = sysmon.system_info(SystemInfo::HostName).unwrap_or("Unknown".into());
 
-    println!("Number of CPUs: {}", nb_cpus);
-
-    // // Network Info
-    // let nic_name = sysmon
-    //     .network_info(NetworkInfo::InterfaceName)
-    //     .unwrap_or_default();
-    // let nic_total_received = sysmon
-    //     .network_info(NetworkInfo::TotalReceived)
-    //     .unwrap_or_default();
-    // let nic_total_transmitted = sysmon
-    //     .network_info(NetworkInfo::TotalTransmitted)
-    //     .unwrap_or_default();
-
-    // println!("Network Interface: {}", nic_name);
-    // println!("Network Bytes TotalReceived: {}", nic_total_received);
-    // println!("Network Bytes TotalTransmitted: {}", nic_total_transmitted);
-
-    // Disk info
     let disk_info = sysmon
         .disk_info(DiskInfo::DiskNames)
         .unwrap_or_else(|| "No disks found".to_string());
 
-    println!("Disks: {}", disk_info);
+    let mut builder = Builder::new();
+    builder.push_record(["OS NAME", &os_name]);
+    builder.push_record(["OS VERSION", &os_version]);
+    builder.push_record(["KERNEL VERSION", &kernel_version]);
+    builder.push_record(["HOST NAME", &host_name]);
+    builder.push_record(["DISKS", &disk_info]);
+    builder.push_record(["NB CPUS", &nb_cpus.to_string()]);
+    builder.push_record(["RAM TOTAL", &gb_total]);
+    builder.push_record(["RAM USED", &gb_used]);
+
+    let mut table = builder.build();
+    table.with(Style::ascii_rounded());
+
+    // ===== ONLY TABLE RENDERING LOGIC BELOW =====
+
+    let table_string = table.to_string();
+    let height = table_string.lines().count();
+
+    unsafe {
+        execute!(
+            stdout,
+            MoveTo(0, 0),
+            Clear(ClearType::FromCursorDown)
+        ).unwrap();
+
+        print!("{}", table_string);
+        stdout.flush().unwrap();
+
+        TABLE_HEIGHT = height;
+    }
+
+    // ===========================================
 
     std::thread::sleep(std::time::Duration::from_secs(1));
 }
