@@ -11,7 +11,7 @@ use crate::sysmon::*;
 pub fn draw(frame: &mut Frame) {
     let sysmon = Sysmon::new();
 
-    // RAM
+    // RAM Info
     let total_ram = format!(
         "{:.2} GB",
         Sysmon::bytes_to_gb(sysmon.ram(RamInfo::TotalMemory))
@@ -27,9 +27,9 @@ pub fn draw(frame: &mut Frame) {
         row("OS VERSION", sysmon.system_info(SystemInfo::OSVersion)),
         row("KERNEL", sysmon.system_info(SystemInfo::KernelVersion)),
         row("HOST", sysmon.system_info(SystemInfo::HostName)),
-        row("NB CPUS",sysmon.cpu_info(CpuInfo::NBCpus).map(|v| v.to_string()),),
-        row("DISKS", sysmon.disk_info(DiskInfo::DiskNames)),
+        row("NB CPUS",sysmon.cpu_info(CpuInfo::NBCpus).map(|v| v.to_string()),),        
 
+        // Updating RAM Info In Table
         Row::new(vec!["RAM TOTAL".into(), total_ram]),
         Row::new(vec!["RAM USED".into(), used_ram]),
     ];
@@ -62,6 +62,6 @@ pub fn draw(frame: &mut Frame) {
 }
 
 /// Helper to create a table row from label + optional value
-fn row(label: &str, value: Option<String>) -> Row {
+fn row(label: &str, value: Option<String>) -> Row<'_> {
     Row::new(vec![label.into(), value.unwrap_or_else(|| "Unknown".into())])
 }

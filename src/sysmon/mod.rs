@@ -18,9 +18,5 @@ pub enum CpuInfo {
     NBCpus,
 }
 
-pub enum DiskInfo {
-    DiskNames,
-}
-
 // Re-export Sysmon
 pub use monitor::Sysmon;

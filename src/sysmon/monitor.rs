@@ -1,9 +1,8 @@
-use sysinfo::{System, Disks};
+use sysinfo::{System};
 use super::*; // <-- THIS pulls in the enums
 
 pub struct Sysmon {
     pub system: System,
-    pub disks: Disks,
 }
 
 impl Sysmon {
@@ -13,7 +12,6 @@ impl Sysmon {
 
         Self {
             system,
-            disks: Disks::new(),
         }
     }
 
@@ -40,18 +38,6 @@ impl Sysmon {
     pub fn cpu_info(&self, info: CpuInfo) -> Option<usize> {
         match info {
             CpuInfo::NBCpus => Some(self.system.cpus().len()),
-        }
-    }
-
-    pub fn disk_info(&self, info: DiskInfo) -> Option<String> {
-        match info {
-            DiskInfo::DiskNames => Some(
-                self.disks
-                    .iter()
-                    .map(|d| d.name().to_string_lossy().into_owned())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            ),
         }
     }
 }
