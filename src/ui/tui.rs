@@ -27,11 +27,9 @@ pub fn draw(frame: &mut Frame) {
         row("OS VERSION", sysmon.system_info(SystemInfo::OSVersion)),
         row("KERNEL", sysmon.system_info(SystemInfo::KernelVersion)),
         row("HOST", sysmon.system_info(SystemInfo::HostName)),
-        row(
-            "NB CPUS",
-            sysmon.cpu_info(CpuInfo::NBCpus).map(|v| v.to_string()),
-        ),
+        row("NB CPUS",sysmon.cpu_info(CpuInfo::NBCpus).map(|v| v.to_string()),),
         row("DISKS", sysmon.disk_info(DiskInfo::DiskNames)),
+
         Row::new(vec!["RAM TOTAL".into(), total_ram]),
         Row::new(vec!["RAM USED".into(), used_ram]),
     ];
@@ -39,7 +37,7 @@ pub fn draw(frame: &mut Frame) {
     // ===== Table =====
     let table = Table::new(rows, &[Constraint::Length(20), Constraint::Min(10)])
         .header(
-            Row::new(vec!["KEY", "VALUE"])
+            Row::new(vec!["INFO", "VALUE"])
                 .style(Style::default().fg(Color::Yellow)),
         )
         .block(
